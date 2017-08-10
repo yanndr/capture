@@ -11,7 +11,11 @@ message VideoCaptureRequest {
   int32 width = 2;
   int32 height =3;
   int64 time =4;
-  string overlayImagePath =5;
+  OverlayImage overlayImage =5;
+}
+
+message OverlayImage{
+  string path =1;
 }
 
 message VideoCaptureReply {

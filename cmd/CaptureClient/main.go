@@ -30,7 +30,13 @@ func main() {
 	c = pb.NewVideoCaptureClient(conn)
 	log.Println(c)
 
-	res, err := c.ExtractImage(context.Background(), &pb.VideoCaptureRequest{Path: "../IMG_3116.mp4", Width: 640, Height: 480, Time: 10000, OverlayImagePath: "../forumtube.png"})
+	res, err := c.ExtractImage(context.Background(),
+		&pb.VideoCaptureRequest{Path: "../IMG_3116.mp4",
+			Width:  640,
+			Height: 480,
+			Time:   10000,
+			 OverlayImage: &pb.OverlayImage{Path: "../forumtube.png"},
+		})
 	if err != nil {
 		log.Println("failed extract")
 		log.Println(err)

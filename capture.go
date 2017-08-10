@@ -31,12 +31,17 @@ func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCapt
 		return nil, err
 	}
 
-	m, err := addImageOverlay(img, in.OverlayImagePath)
-	if err != nil {
-		return nil, err
+	var imgResult image.Image
+	if in.OverlayImage != nil {
+		imgResult, err = addImageOverlay(img, in.OverlayImage.Path)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		imgResult = img
 	}
 
-	result, err := saveToPng(m)
+	result, err := saveToPng(imgResult)
 	if err != nil {
 		return nil, err
 	}
