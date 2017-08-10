@@ -26,14 +26,14 @@ func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCapt
 		return nil, err
 	}
 
-	img, err := g.ImageWxH(in.Time, int(in.Width), int(in.Height))
+	img, err := g.ImageWxH(in.Time, int(in.Size.Width), int(in.Size.Height))
 	if err != nil {
 		return nil, err
 	}
 
 	var imgResult image.Image
 	if in.OverlayImage != nil {
-		imgResult, err = addImageOverlay(img, in.OverlayImage.Path)
+		imgResult, err = addImageOverlay(img, in.OverlayImage)
 		if err != nil {
 			return nil, err
 		}
@@ -49,8 +49,8 @@ func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCapt
 	return &pb.VideoCaptureReply{Data: result}, nil
 }
 
-func addImageOverlay(img image.Image, path string) (*image.RGBA, error) {
-	flogo, err := os.Open(path)
+func addImageOverlay(img image.Image, overlayImage *pb.OverlayImage) (*image.RGBA, error) {
+	flogo, err := os.Open(overlayImage.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func addImageOverlay(img image.Image, path string) (*image.RGBA, error) {
 
 	m := image.NewRGBA(image.Rect(0, 0, img.Bounds().Max.X, img.Bounds().Max.Y))
 	draw.Draw(m, m.Bounds(), img, image.Point{0, 0}, draw.Src)
-	draw.Draw(m, m.Bounds(), logo, image.Point{-5, -5}, draw.Src)
+	draw.Draw(m, m.Bounds(), logo, image.Point{int(overlayImage.Position.X), int(overlayImage.Position.Y)}, draw.Src)
 
 	return m, nil
 
