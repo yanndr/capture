@@ -32,11 +32,13 @@ func main() {
 
 	res, err := c.ExtractImage(context.Background(),
 		&pb.VideoCaptureRequest{Path: "../IMG_3116.mp4",
-			Size: &pb.Size{Width: 640, Height: 480},
-			Time: 10000,
+			Width:  640,
+			Height: 480,
+			Time:   10000,
 			OverlayImage: &pb.OverlayImage{
-				Path:     "../forumtube.png",
-				Position: &pb.Position{X: -10, Y: -10},
+				Path: "../forumtube.png",
+				X:    -10,
+				Y:    -10,
 			},
 		})
 	if err != nil {

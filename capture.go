@@ -26,7 +26,7 @@ func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCapt
 		return nil, err
 	}
 
-	img, err := g.ImageWxH(in.Time, int(in.Size.Width), int(in.Size.Height))
+	img, err := g.ImageWxH(in.Time, int(in.Width), int(in.Height))
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,47 @@ func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCapt
 	return &pb.VideoCaptureReply{Data: result}, nil
 }
 
-func addImageOverlay(img image.Image, overlayImage *pb.OverlayImage) (*image.RGBA, error) {
-	flogo, err := os.Open(overlayImage.Path)
+type ExtractRequest struct {
+	Path   string
+	Time   int64
+	Width  int32
+	Height int32
+}
+
+type ExtractResponse struct {
+	Data []byte
+	Err  error
+}
+
+//Extract extract an image from a video.
+func (s *VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) ExtractResponse {
+
+	g, err := screengen.NewGenerator(request.Path)
+	if err != nil {
+		return ExtractResponse{nil, err}
+	}
+
+	img, err := g.ImageWxH(request.Time, int(request.Width), int(request.Height))
+	if err != nil {
+		return ExtractResponse{nil, err}
+	}
+
+	result, err := saveToPng(img)
+	if err != nil {
+		return ExtractResponse{nil, err}
+	}
+
+	return ExtractResponse{result, nil}
+}
+
+type overlayImage interface {
+	GetPath() string
+	GetX() int32
+	GetY() int32
+}
+
+func addImageOverlay(img image.Image, overlayImage overlayImage) (*image.RGBA, error) {
+	flogo, err := os.Open(overlayImage.GetPath())
 	if err != nil {
 		return nil, err
 	}
@@ -63,10 +102,9 @@ func addImageOverlay(img image.Image, overlayImage *pb.OverlayImage) (*image.RGB
 
 	m := image.NewRGBA(image.Rect(0, 0, img.Bounds().Max.X, img.Bounds().Max.Y))
 	draw.Draw(m, m.Bounds(), img, image.Point{0, 0}, draw.Src)
-	draw.Draw(m, m.Bounds(), logo, image.Point{int(overlayImage.Position.X), int(overlayImage.Position.Y)}, draw.Src)
+	draw.Draw(m, m.Bounds(), logo, image.Point{int(overlayImage.GetX()), int(overlayImage.GetY())}, draw.Src)
 
 	return m, nil
-
 }
 
 func saveToPng(img image.Image) ([]byte, error) {
