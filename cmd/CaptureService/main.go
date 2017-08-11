@@ -2,21 +2,25 @@ package main
 
 import (
 	"net"
+	"net/http"
 	"os"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/prometheus"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yanndr/capture"
-
 	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
 	"github.com/yanndr/capture/transport"
-
-	"github.com/go-kit/kit/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 const (
-	port = ":50051"
+	gRPCPort  = ":50051"
+	debugAddr = ":8080"
 )
 
 func main() {
@@ -28,13 +32,49 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
+	var extracts metrics.Counter
+	{
+		// Business-level metrics.
+		extracts = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: "capture",
+			Subsystem: "captureSvx",
+			Name:      "extracts_summed",
+			Help:      "Total count of extracts done via the Extract method.",
+		}, []string{})
+	}
+
+	var duration metrics.Histogram
+	{
+		// Endpoint-level metrics.
+		duration = prometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+			Namespace: "example",
+			Subsystem: "addsvc",
+			Name:      "request_duration_seconds",
+			Help:      "Request duration in seconds.",
+		}, []string{"method", "success"})
+	}
+
+	http.DefaultServeMux.Handle("/metrics", promhttp.Handler())
+
 	var (
-		service    = capture.NewService(logger)
-		endpoints  = endpoint.New(service, logger)
+		service    = capture.NewService(logger, extracts)
+		endpoints  = endpoint.New(service, logger, duration)
 		grpcServer = transport.NewGRPCServer(endpoints, logger)
 	)
 
-	grpcListener, err := net.Listen("tcp", port)
+	debugListener, err := net.Listen("tcp", debugAddr)
+	if err != nil {
+		logger.Log("transport", "debug/HTTP", "during", "Listen", "err", err)
+		os.Exit(1)
+	}
+
+	go func() {
+		if err := http.Serve(debugListener, http.DefaultServeMux); err != nil {
+			logger.Log("transport", "HTTP", "during", "serve", "err", err)
+		}
+	}()
+
+	grpcListener, err := net.Listen("tcp", gRPCPort)
 	if err != nil {
 		logger.Log("transport", "gRPC", "during", "listen", "err", err)
 		os.Exit(1)

@@ -8,17 +8,10 @@ import (
 	"os"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
 	"github.com/opennota/screengen"
 	"golang.org/x/net/context"
 )
-
-//VideoCaptureService expose funcions for video.
-type VideoCaptureService struct {
-}
-
-func New() VideoCaptureService {
-	return VideoCaptureService{}
-}
 
 type ExtractRequest struct {
 	Path   string
@@ -36,12 +29,21 @@ type Service interface {
 	Extract(context.Context, ExtractRequest) ExtractResponse
 }
 
-func NewService(logger log.Logger) Service {
+func NewService(logger log.Logger, extracts metrics.Counter) Service {
 	var svc Service
 	svc = VideoCaptureService{}
 	svc = LoggingMiddleware(logger)(svc)
+	svc = InstrumentingMiddleware(extracts)(svc)
 
 	return svc
+}
+
+//VideoCaptureService expose funcions for video.
+type VideoCaptureService struct {
+}
+
+func New() VideoCaptureService {
+	return VideoCaptureService{}
 }
 
 //Extract extract an image from a video.

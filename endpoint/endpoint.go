@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
 	"github.com/yanndr/capture"
 )
 
@@ -12,8 +13,10 @@ type Set struct {
 	ExtractEndpoint endpoint.Endpoint
 }
 
-func New(svc capture.Service, logger log.Logger) Set {
+func New(svc capture.Service, logger log.Logger, duration metrics.Histogram) Set {
 	extractEndpoint := MakeExtractEndpoint(svc)
+	extractEndpoint = LoggingMiddleware(log.With(logger, "method", "Extract"))(extractEndpoint)
+	extractEndpoint = InstrumentingMiddleware(duration.With("method", "Extract"))(extractEndpoint)
 
 	return Set{
 		ExtractEndpoint: extractEndpoint,
