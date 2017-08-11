@@ -7,8 +7,8 @@ import (
 	"image/png"
 	"os"
 
+	"github.com/go-kit/kit/log"
 	"github.com/opennota/screengen"
-	"github.com/yanndr/capture/pb"
 	"golang.org/x/net/context"
 )
 
@@ -18,37 +18,6 @@ type VideoCaptureService struct {
 
 func New() VideoCaptureService {
 	return VideoCaptureService{}
-}
-
-//ExtractImage extract an image from a video.
-func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCaptureRequest) (*pb.VideoCaptureReply, error) {
-
-	g, err := screengen.NewGenerator(in.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	img, err := g.ImageWxH(in.Time, int(in.Width), int(in.Height))
-	if err != nil {
-		return nil, err
-	}
-
-	var imgResult image.Image
-	if in.OverlayImage != nil {
-		imgResult, err = addImageOverlay(img, in.OverlayImage)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		imgResult = img
-	}
-
-	result, err := saveToPng(imgResult)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.VideoCaptureReply{Data: result}, nil
 }
 
 type ExtractRequest struct {
@@ -63,8 +32,20 @@ type ExtractResponse struct {
 	Err  error
 }
 
+type Service interface {
+	Extract(context.Context, ExtractRequest) ExtractResponse
+}
+
+func NewService(logger log.Logger) Service {
+	var svc Service
+	svc = VideoCaptureService{}
+	svc = LoggingMiddleware(logger)(svc)
+
+	return svc
+}
+
 //Extract extract an image from a video.
-func (s *VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) ExtractResponse {
+func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) ExtractResponse {
 
 	g, err := screengen.NewGenerator(request.Path)
 	if err != nil {
@@ -75,6 +56,16 @@ func (s *VideoCaptureService) Extract(ctx context.Context, request ExtractReques
 	if err != nil {
 		return ExtractResponse{nil, err}
 	}
+
+	// var imgResult image.Image
+	// if in.OverlayImage != nil {
+	// 	imgResult, err = addImageOverlay(img, in.OverlayImage)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	imgResult = img
+	// }
 
 	result, err := saveToPng(img)
 	if err != nil {

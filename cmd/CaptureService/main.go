@@ -29,7 +29,7 @@ func main() {
 	}
 
 	var (
-		service    = capture.VideoCaptureService{}
+		service    = capture.NewService(logger)
 		endpoints  = endpoint.New(service, logger)
 		grpcServer = transport.NewGRPCServer(endpoints, logger)
 	)
@@ -42,7 +42,8 @@ func main() {
 
 	creds, err := credentials.NewServerTLSFromFile("../cert.pem", "../key.pem")
 	if err != nil {
-		// log.Fatal(err)
+		logger.Log("transport", "gRPC", "during", "credential", "err", err)
+		os.Exit(1)
 	}
 	opts := []grpc.ServerOption{grpc.Creds(creds)}
 
@@ -50,26 +51,7 @@ func main() {
 	pb.RegisterVideoCaptureServer(server, grpcServer)
 
 	if err := server.Serve(grpcListener); err != nil {
-		logger.Log("transport", "gRPC", "during", "listen", "err", err)
+		logger.Log("transport", "gRPC", "during", "serve", "err", err)
 		os.Exit(1)
 	}
-
-	// lis, err := net.Listen("tcp", port)
-	// if err != nil {
-	// 	// log.Fatalf("failed to listen: %v", err)
-	// }
-
-	// creds, err := credentials.NewServerTLSFromFile("../cert.pem", "../key.pem")
-	// if err != nil {
-	// 	// log.Fatal(err)
-	// }
-	// opts := []grpc.ServerOption{grpc.Creds(creds)}
-
-	// s := grpc.NewServer(opts...)
-	// pb.RegisterVideoCaptureServer(s, &capture.VideoCaptureService{})
-	// // Register reflection service on gRPC server.
-	// reflection.Register(s)
-	// if err := s.Serve(lis); err != nil {
-	// 	// log.Fatalf("failed to serve: %v", err)
-	// }
 }
