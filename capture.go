@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"log"
 	"os"
 
 	"github.com/opennota/screengen"
@@ -17,9 +16,12 @@ import (
 type VideoCaptureService struct {
 }
 
+func New() VideoCaptureService {
+	return VideoCaptureService{}
+}
+
 //ExtractImage extract an image from a video.
 func (s *VideoCaptureService) ExtractImage(ctx context.Context, in *pb.VideoCaptureRequest) (*pb.VideoCaptureReply, error) {
-	log.Println("path: ", in.Path)
 
 	g, err := screengen.NewGenerator(in.Path)
 	if err != nil {
@@ -114,6 +116,6 @@ func saveToPng(img image.Image) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Println("Wrote ", len(buf.Bytes()))
+	// log.Println("Wrote ", len(buf.Bytes()))
 	return buf.Bytes(), nil
 }

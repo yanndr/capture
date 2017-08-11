@@ -25,14 +25,20 @@ func NewGRPCServer(endpoints endpoint.Set, logger log.Logger) pb.VideoCaptureSer
 		extract: grpctransport.NewServer(
 			endpoints.ExtractEndpoint,
 			decodeGPRCExtractRequest,
-			decodeGPRCExtractRequest,
+			encodeGPRCExtractResponse,
+			options...,
 		),
 	}
 }
 
 func decodeGPRCExtractRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
 	req := grpcReq.(*pb.VideoCaptureRequest)
-	return capture.ExtractRequest{Path: req.Path}, nil
+	return capture.ExtractRequest{Path: req.Path, Height: req.Height, Width: req.Width, Time: req.Time}, nil
+}
+
+func encodeGPRCExtractResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
+	resp := grpcReply.(capture.ExtractResponse)
+	return &pb.VideoCaptureReply{Data: resp.Data}, nil
 }
 
 func (s *grpcServer) ExtractImage(ctx oldcontext.Context, req *pb.VideoCaptureRequest) (*pb.VideoCaptureReply, error) {
