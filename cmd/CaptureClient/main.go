@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 
@@ -30,17 +31,36 @@ func main() {
 	c = pb.NewVideoCaptureClient(conn)
 	log.Println(c)
 
-	res, err := c.ExtractImage(context.Background(),
-		&pb.VideoCaptureRequest{Path: "../IMG_3116.mp4",
-			Width:  640,
-			Height: 480,
-			Time:   10000,
-			OverlayImage: &pb.OverlayImage{
-				Path: "../forumtube.png",
-				X:    -10,
-				Y:    -10,
-			},
-		})
+	fi, err := os.Open("../IMG_3116.mp4")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	defer fi.Close()
+
+	stream, err := c.ExtractImage(context.Background())
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	for {
+		chunk := make([]byte, 64*1024)
+		n, err := fi.Read(chunk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		if n < len(chunk) {
+			chunk = chunk[:n]
+		}
+		stream.Send(&pb.VideoCaptureRequest{Name: fi.Name(), Video: chunk, Width: 640, Height: 480, Time: 10000})
+	}
+
+	res, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Println("failed extract")
 		log.Println(err)

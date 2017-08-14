@@ -11,7 +11,6 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yanndr/capture"
-	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
 	"github.com/yanndr/capture/transport"
 	"google.golang.org/grpc"
@@ -43,23 +42,11 @@ func main() {
 		}, []string{})
 	}
 
-	var duration metrics.Histogram
-	{
-		// Endpoint-level metrics.
-		duration = prometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-			Namespace: "example",
-			Subsystem: "addsvc",
-			Name:      "request_duration_seconds",
-			Help:      "Request duration in seconds.",
-		}, []string{"method", "success"})
-	}
-
 	http.DefaultServeMux.Handle("/metrics", promhttp.Handler())
 
 	var (
 		service    = capture.NewService(logger, extracts)
-		endpoints  = endpoint.New(service, logger, duration)
-		grpcServer = transport.NewGRPCServer(endpoints, logger)
+		grpcServer = transport.NewGRPCServer(service)
 	)
 
 	debugListener, err := net.Listen("tcp", debugAddr)
@@ -80,7 +67,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	creds, err := credentials.NewServerTLSFromFile("../cert.pem", "../key.pem")
+	creds, err := credentials.NewServerTLSFromFile("../../../cert.pem", "../../../key.pem")
 	if err != nil {
 		logger.Log("transport", "gRPC", "during", "credential", "err", err)
 		os.Exit(1)

@@ -7,6 +7,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/yanndr/capture"
+	"github.com/yanndr/capture/pb"
 )
 
 type Set struct {
@@ -29,3 +30,5 @@ func MakeExtractEndpoint(s capture.Service) endpoint.Endpoint {
 		return s.Extract(ctx, req), nil
 	}
 }
+
+func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) error

@@ -22,7 +22,7 @@ type loggingMiddleware struct {
 	next   Service
 }
 
-func (mw loggingMiddleware) Extract(ctx context.Context, request ExtractRequest) ExtractResponse {
+func (mw loggingMiddleware) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 	defer func() {
 		mw.logger.Log("method", "Extract", "ExtractRequest", request)
 	}()
@@ -46,7 +46,7 @@ func InstrumentingMiddleware(extracts metrics.Counter) Middleware {
 	}
 }
 
-func (mw instrumentingMiddleware) Extract(ctx context.Context, request ExtractRequest) ExtractResponse {
+func (mw instrumentingMiddleware) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 	mw.extracts.Add(float64(1))
 	return mw.next.Extract(ctx, request)
 }

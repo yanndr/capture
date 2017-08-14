@@ -1,6 +1,7 @@
 package capture
 
 import (
+	"bufio"
 	"bytes"
 	"image"
 	"image/draw"
@@ -14,7 +15,8 @@ import (
 )
 
 type ExtractRequest struct {
-	Path   string
+	Video  []byte
+	Name   string
 	Time   int64
 	Width  int32
 	Height int32
@@ -22,11 +24,10 @@ type ExtractRequest struct {
 
 type ExtractResponse struct {
 	Data []byte
-	Err  error
 }
 
 type Service interface {
-	Extract(context.Context, ExtractRequest) ExtractResponse
+	Extract(context.Context, ExtractRequest) (ExtractResponse, error)
 }
 
 func NewService(logger log.Logger, extracts metrics.Counter) Service {
@@ -47,16 +48,21 @@ func New() VideoCaptureService {
 }
 
 //Extract extract an image from a video.
-func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) ExtractResponse {
+func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 
-	g, err := screengen.NewGenerator(request.Path)
+	name, err := saveFile(request.Name, request.Video)
 	if err != nil {
-		return ExtractResponse{nil, err}
+		return ExtractResponse{}, err
+	}
+
+	g, err := screengen.NewGenerator(name)
+	if err != nil {
+		return ExtractResponse{}, err
 	}
 
 	img, err := g.ImageWxH(request.Time, int(request.Width), int(request.Height))
 	if err != nil {
-		return ExtractResponse{nil, err}
+		return ExtractResponse{}, err
 	}
 
 	// var imgResult image.Image
@@ -71,10 +77,31 @@ func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest
 
 	result, err := saveToPng(img)
 	if err != nil {
-		return ExtractResponse{nil, err}
+		return ExtractResponse{}, err
 	}
 
-	return ExtractResponse{result, nil}
+	os.Remove(name)
+
+	return ExtractResponse{Data: result}, nil
+}
+
+func saveFile(name string, data []byte) (string, error) {
+	fo, err := os.Create(name)
+	if err != nil {
+		return "", err
+	}
+
+	w := bufio.NewWriter(fo)
+
+	if _, err := w.Write(data); err != nil {
+		return "", err
+	}
+
+	if err := w.Flush(); err != nil {
+		return "", err
+	}
+
+	return name, nil
 }
 
 type overlayImage interface {

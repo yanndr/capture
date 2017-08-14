@@ -2,51 +2,58 @@ package transport
 
 import (
 	"context"
+	"io"
 
-	"github.com/go-kit/kit/log"
-	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"github.com/yanndr/capture"
-	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
-
-	oldcontext "golang.org/x/net/context"
 )
 
 type grpcServer struct {
-	extract grpctransport.Handler
+	// extract grpctransport.Handler
+	service capture.Service
 }
 
-func NewGRPCServer(endpoints endpoint.Set, logger log.Logger) pb.VideoCaptureServer {
-	options := []grpctransport.ServerOption{
-		grpctransport.ServerErrorLogger(logger),
-	}
+func NewGRPCServer(svc capture.Service) pb.VideoCaptureServer {
 
 	return &grpcServer{
-		extract: grpctransport.NewServer(
-			endpoints.ExtractEndpoint,
-			decodeGPRCExtractRequest,
-			encodeGPRCExtractResponse,
-			options...,
-		),
+		service: svc,
 	}
 }
 
-func decodeGPRCExtractRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
-	req := grpcReq.(*pb.VideoCaptureRequest)
-	return capture.ExtractRequest{Path: req.Path, Height: req.Height, Width: req.Width, Time: req.Time}, nil
+func decodeGPRCExtractRequest(req *pb.VideoCaptureRequest) capture.ExtractRequest {
+	return capture.ExtractRequest{Video: req.Video, Height: req.Height, Width: req.Width, Time: req.Time}
 }
 
-func encodeGPRCExtractResponse(_ context.Context, grpcReply interface{}) (interface{}, error) {
-	resp := grpcReply.(capture.ExtractResponse)
-	return &pb.VideoCaptureReply{Data: resp.Data}, nil
+func encodeGPRCExtractResponse(resp capture.ExtractResponse) *pb.VideoCaptureReply {
+	return &pb.VideoCaptureReply{Data: resp.Data}
 }
 
-func (s *grpcServer) ExtractImage(ctx oldcontext.Context, req *pb.VideoCaptureRequest) (*pb.VideoCaptureReply, error) {
-	_, rep, err := s.extract.ServeGRPC(ctx, req)
+func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) error {
+	data := []byte{}
+	var time int64
+	var width, height int32
+	var name string
 
-	if err != nil {
-		return nil, err
+	for {
+		req, err := stream.Recv()
+
+		if err == io.EOF {
+			request := capture.ExtractRequest{Video: data, Name: name, Height: height, Width: width, Time: time}
+			rep, err := s.service.Extract(context.Background(), request)
+			if err != nil {
+				return err
+			}
+
+			return stream.SendAndClose(encodeGPRCExtractResponse(rep))
+		}
+		if err != nil {
+			return err
+		}
+		data = append(data, req.Video...)
+		time = req.Time
+		width = req.Width
+		height = req.Height
+		name = req.Name
+
 	}
-
-	return rep.(*pb.VideoCaptureReply), nil
 }

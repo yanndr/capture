@@ -3,15 +3,15 @@ syntax = "proto3";
 package pb;
 
 service VideoCapture {
-  rpc ExtractImage (VideoCaptureRequest) returns (VideoCaptureReply) {}
+  rpc ExtractImage (stream VideoCaptureRequest) returns (VideoCaptureReply) {}
 }
 
 message VideoCaptureRequest {
-  string path = 1;
-  int32 width = 2;
-  int32 height =3;
-  int64 time =4;
-  OverlayImage overlayImage =5;
+  bytes video =1;
+  string name = 2;
+  int32 width = 3;
+  int32 height =4;
+  int64 time =5;
 }
 
 message OverlayImage{
@@ -19,8 +19,6 @@ message OverlayImage{
   int32 x=2;
   int32 y=3;
 }
-
-
 
 message VideoCaptureReply {
   bytes data =1;
