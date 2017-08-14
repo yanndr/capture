@@ -5,27 +5,24 @@ import (
 	"io"
 
 	"github.com/yanndr/capture"
+	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
 )
 
 type grpcServer struct {
-	// extract grpctransport.Handler
-	service capture.Service
+	endpoints endpoint.Set
 }
 
-func NewGRPCServer(svc capture.Service) pb.VideoCaptureServer {
+func NewGRPCServer(endpoints endpoint.Set) pb.VideoCaptureServer {
 
 	return &grpcServer{
-		service: svc,
+		endpoints: endpoints,
 	}
 }
 
-func decodeGPRCExtractRequest(req *pb.VideoCaptureRequest) capture.ExtractRequest {
-	return capture.ExtractRequest{Video: req.Video, Height: req.Height, Width: req.Width, Time: req.Time}
-}
-
-func encodeGPRCExtractResponse(resp capture.ExtractResponse) *pb.VideoCaptureReply {
-	return &pb.VideoCaptureReply{Data: resp.Data}
+func encodeGPRCExtractResponse(resp interface{}) *pb.VideoCaptureReply {
+	res := resp.(capture.ExtractResponse)
+	return &pb.VideoCaptureReply{Data: res.Data}
 }
 
 func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) error {
@@ -39,7 +36,8 @@ func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) err
 
 		if err == io.EOF {
 			request := capture.ExtractRequest{Video: data, Name: name, Height: height, Width: width, Time: time}
-			rep, err := s.service.Extract(context.Background(), request)
+
+			rep, err := s.endpoints.ExtractEndpoint(context.Background(), request)
 			if err != nil {
 				return err
 			}
@@ -54,6 +52,5 @@ func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) err
 		width = req.Width
 		height = req.Height
 		name = req.Name
-
 	}
 }

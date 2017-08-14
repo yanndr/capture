@@ -66,7 +66,7 @@ func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest
 	}
 
 	// var imgResult image.Image
-	// if in.OverlayImage != nil {
+	// if request.OverlayImage != nil {
 	// 	imgResult, err = addImageOverlay(img, in.OverlayImage)
 	// 	if err != nil {
 	// 		return nil, err

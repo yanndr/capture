@@ -11,6 +11,7 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yanndr/capture"
+	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
 	"github.com/yanndr/capture/transport"
 	"google.golang.org/grpc"
@@ -36,17 +37,29 @@ func main() {
 		// Business-level metrics.
 		extracts = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: "capture",
-			Subsystem: "captureSvx",
+			Subsystem: "captureSvc",
 			Name:      "extracts_summed",
 			Help:      "Total count of extracts done via the Extract method.",
 		}, []string{})
+	}
+
+	var duration metrics.Histogram
+	{
+		// Endpoint-level metrics.
+		duration = prometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+			Namespace: "capture",
+			Subsystem: "captureSvc",
+			Name:      "request_duration_seconds",
+			Help:      "Request duration in seconds.",
+		}, []string{"method", "success"})
 	}
 
 	http.DefaultServeMux.Handle("/metrics", promhttp.Handler())
 
 	var (
 		service    = capture.NewService(logger, extracts)
-		grpcServer = transport.NewGRPCServer(service)
+		endpoints  = endpoint.New(service, logger, duration)
+		grpcServer = transport.NewGRPCServer(endpoints)
 	)
 
 	debugListener, err := net.Listen("tcp", debugAddr)

@@ -24,7 +24,7 @@ type loggingMiddleware struct {
 
 func (mw loggingMiddleware) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 	defer func() {
-		mw.logger.Log("method", "Extract", "ExtractRequest", request)
+		mw.logger.Log("method", "Extract", "ExtractRequest", request.Name)
 	}()
 	return mw.next.Extract(ctx, request)
 }
