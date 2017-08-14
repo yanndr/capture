@@ -4,19 +4,20 @@ import (
 	"context"
 	"io"
 
+	kitendpoint "github.com/go-kit/kit/endpoint"
 	"github.com/yanndr/capture"
 	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
 )
 
 type grpcServer struct {
-	endpoints endpoint.Set
+	extract kitendpoint.Endpoint
 }
 
 func NewGRPCServer(endpoints endpoint.Set) pb.VideoCaptureServer {
 
 	return &grpcServer{
-		endpoints: endpoints,
+		extract: endpoints.ExtractEndpoint,
 	}
 }
 
@@ -37,7 +38,7 @@ func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) err
 		if err == io.EOF {
 			request := capture.ExtractRequest{Video: data, Name: name, Height: height, Width: width, Time: time}
 
-			rep, err := s.endpoints.ExtractEndpoint(context.Background(), request)
+			rep, err := s.extract(context.Background(), request)
 			if err != nil {
 				return err
 			}
