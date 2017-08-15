@@ -22,12 +22,19 @@ type ExtractRequest struct {
 	Height int32
 }
 
+type OverlayImageRequest struct {
+	Original []byte
+	Overlay  []byte
+	X, Y     int32
+}
+
 type ExtractResponse struct {
 	Data []byte
 }
 
 type Service interface {
 	Extract(context.Context, ExtractRequest) (ExtractResponse, error)
+	AddOverlay(request OverlayImageRequest) ([]byte, error)
 }
 
 func NewService(logger log.Logger, extracts metrics.Counter) Service {
@@ -65,16 +72,6 @@ func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest
 		return ExtractResponse{}, err
 	}
 
-	// var imgResult image.Image
-	// if request.OverlayImage != nil {
-	// 	imgResult, err = addImageOverlay(img, in.OverlayImage)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// } else {
-	// 	imgResult = img
-	// }
-
 	result, err := saveToPng(img)
 	if err != nil {
 		return ExtractResponse{}, err
@@ -83,6 +80,30 @@ func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest
 	os.Remove(name)
 
 	return ExtractResponse{Data: result}, nil
+}
+
+func (s VideoCaptureService) AddOverlay(request OverlayImageRequest) ([]byte, error) {
+
+	r := bytes.NewReader(request.Original)
+
+	img, _, err := image.Decode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	or := bytes.NewReader(request.Overlay)
+
+	logo, _, err := image.Decode(or)
+	if err != nil {
+		return nil, err
+	}
+
+	m := image.NewRGBA(image.Rect(0, 0, img.Bounds().Max.X, img.Bounds().Max.Y))
+	draw.Draw(m, m.Bounds(), img, image.Point{0, 0}, draw.Src)
+	draw.Draw(m, m.Bounds(), logo, image.Point{int(request.X), int(request.Y)}, draw.Src)
+
+	return saveToPng(m)
+
 }
 
 func saveFile(name string, data []byte) (string, error) {
@@ -102,31 +123,6 @@ func saveFile(name string, data []byte) (string, error) {
 	}
 
 	return name, nil
-}
-
-type overlayImage interface {
-	GetPath() string
-	GetX() int32
-	GetY() int32
-}
-
-func addImageOverlay(img image.Image, overlayImage overlayImage) (*image.RGBA, error) {
-	flogo, err := os.Open(overlayImage.GetPath())
-	if err != nil {
-		return nil, err
-	}
-
-	defer flogo.Close()
-	logo, _, err := image.Decode(flogo)
-	if err != nil {
-		return nil, err
-	}
-
-	m := image.NewRGBA(image.Rect(0, 0, img.Bounds().Max.X, img.Bounds().Max.Y))
-	draw.Draw(m, m.Bounds(), img, image.Point{0, 0}, draw.Src)
-	draw.Draw(m, m.Bounds(), logo, image.Point{int(overlayImage.GetX()), int(overlayImage.GetY())}, draw.Src)
-
-	return m, nil
 }
 
 func saveToPng(img image.Image) ([]byte, error) {

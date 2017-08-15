@@ -12,12 +12,14 @@ import (
 
 type grpcServer struct {
 	extract kitendpoint.Endpoint
+	overlay kitendpoint.Endpoint
 }
 
 func NewGRPCServer(endpoints endpoint.Set) pb.VideoCaptureServer {
 
 	return &grpcServer{
 		extract: endpoints.ExtractEndpoint,
+		overlay: endpoints.AddOverlayEndpoint,
 	}
 }
 
@@ -53,5 +55,33 @@ func (s *grpcServer) ExtractImage(stream pb.VideoCapture_ExtractImageServer) err
 		width = req.Width
 		height = req.Height
 		name = req.Name
+	}
+}
+
+func (s *grpcServer) AddOverlay(stream pb.VideoCapture_AddOverlayServer) error {
+	original := []byte{}
+	logo := []byte{}
+	var x, y int32
+
+	for {
+		req, err := stream.Recv()
+
+		if err == io.EOF {
+			request := capture.OverlayImageRequest{Original: original, Overlay: logo, X: x, Y: y}
+
+			rep, err := s.overlay(context.Background(), request)
+			if err != nil {
+				return err
+			}
+
+			return stream.SendAndClose(encodeGPRCExtractResponse(rep))
+		}
+		if err != nil {
+			return err
+		}
+		original = append(original, req.Original...)
+		logo = append(logo, req.Overlay...)
+		x = req.Position.X
+		y = req.Position.Y
 	}
 }

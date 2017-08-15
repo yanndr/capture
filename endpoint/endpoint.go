@@ -10,7 +10,8 @@ import (
 )
 
 type Set struct {
-	ExtractEndpoint endpoint.Endpoint
+	ExtractEndpoint    endpoint.Endpoint
+	AddOverlayEndpoint endpoint.Endpoint
 }
 
 func New(svc capture.Service, logger log.Logger, duration metrics.Histogram) Set {
@@ -18,8 +19,13 @@ func New(svc capture.Service, logger log.Logger, duration metrics.Histogram) Set
 	extractEndpoint = LoggingMiddleware(log.With(logger, "method", "Extract"))(extractEndpoint)
 	extractEndpoint = InstrumentingMiddleware(duration.With("method", "Extract"))(extractEndpoint)
 
+	overlayEndpoint := MakeAddOverlayEndpoint(svc)
+	overlayEndpoint = LoggingMiddleware(log.With(logger, "method", "AddOverlay"))(extractEndpoint)
+	overlayEndpoint = InstrumentingMiddleware(duration.With("method", "AddOverlay"))(extractEndpoint)
+
 	return Set{
-		ExtractEndpoint: extractEndpoint,
+		ExtractEndpoint:    extractEndpoint,
+		AddOverlayEndpoint: overlayEndpoint,
 	}
 }
 
@@ -27,5 +33,12 @@ func MakeExtractEndpoint(s capture.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(capture.ExtractRequest)
 		return s.Extract(ctx, req)
+	}
+}
+
+func MakeAddOverlayEndpoint(s capture.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(capture.OverlayImageRequest)
+		return s.AddOverlay(req)
 	}
 }

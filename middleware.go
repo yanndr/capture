@@ -29,8 +29,16 @@ func (mw loggingMiddleware) Extract(ctx context.Context, request ExtractRequest)
 	return mw.next.Extract(ctx, request)
 }
 
+func (mw loggingMiddleware) AddOverlay(request OverlayImageRequest) ([]byte, error) {
+	defer func() {
+		mw.logger.Log("method", "AddOverlay")
+	}()
+	return mw.next.AddOverlay(request)
+}
+
 type instrumentingMiddleware struct {
 	extracts metrics.Counter
+	overlays metrics.Counter
 	next     Service
 }
 
@@ -49,4 +57,9 @@ func InstrumentingMiddleware(extracts metrics.Counter) Middleware {
 func (mw instrumentingMiddleware) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 	mw.extracts.Add(float64(1))
 	return mw.next.Extract(ctx, request)
+}
+
+func (mw instrumentingMiddleware) AddOverlay(request OverlayImageRequest) ([]byte, error) {
+	mw.overlays.Add(float64(1))
+	return mw.next.AddOverlay(request)
 }

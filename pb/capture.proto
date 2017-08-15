@@ -4,6 +4,7 @@ package pb;
 
 service VideoCapture {
   rpc ExtractImage (stream VideoCaptureRequest) returns (VideoCaptureReply) {}
+  rpc AddOverlay (stream OverlayImageRequest) returns (VideoCaptureReply) {}
 }
 
 message VideoCaptureRequest {
@@ -14,10 +15,15 @@ message VideoCaptureRequest {
   int64 time =5;
 }
 
-message OverlayImage{
-  string path =1;
-  int32 x=2;
-  int32 y=3;
+message OverlayImageRequest{
+  bytes original =1;
+  bytes overlay=2;
+  Position  position=3;
+}
+
+message Position{
+  int32 x=1;
+  int32 y=2;
 }
 
 message VideoCaptureReply {
