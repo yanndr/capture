@@ -29,7 +29,7 @@ func (mw loggingMiddleware) Extract(ctx context.Context, request ExtractRequest)
 	return mw.next.Extract(ctx, request)
 }
 
-func (mw loggingMiddleware) AddOverlay(request OverlayImageRequest) ([]byte, error) {
+func (mw loggingMiddleware) AddOverlay(request OverlayImageRequest) (ExtractResponse, error) {
 	defer func() {
 		mw.logger.Log("method", "AddOverlay")
 	}()
@@ -45,10 +45,11 @@ type instrumentingMiddleware struct {
 // InstrumentingMiddleware returns a service middleware that instruments
 // the number of integers summed and characters concatenated over the lifetime of
 // the service.
-func InstrumentingMiddleware(extracts metrics.Counter) Middleware {
+func InstrumentingMiddleware(extracts, overlays metrics.Counter) Middleware {
 	return func(next Service) Service {
 		return instrumentingMiddleware{
 			extracts: extracts,
+			overlays: overlays,
 			next:     next,
 		}
 	}
@@ -59,7 +60,7 @@ func (mw instrumentingMiddleware) Extract(ctx context.Context, request ExtractRe
 	return mw.next.Extract(ctx, request)
 }
 
-func (mw instrumentingMiddleware) AddOverlay(request OverlayImageRequest) ([]byte, error) {
+func (mw instrumentingMiddleware) AddOverlay(request OverlayImageRequest) (ExtractResponse, error) {
 	mw.overlays.Add(float64(1))
 	return mw.next.AddOverlay(request)
 }

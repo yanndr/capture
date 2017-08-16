@@ -20,8 +20,8 @@ func New(svc capture.Service, logger log.Logger, duration metrics.Histogram) Set
 	extractEndpoint = InstrumentingMiddleware(duration.With("method", "Extract"))(extractEndpoint)
 
 	overlayEndpoint := MakeAddOverlayEndpoint(svc)
-	overlayEndpoint = LoggingMiddleware(log.With(logger, "method", "AddOverlay"))(extractEndpoint)
-	overlayEndpoint = InstrumentingMiddleware(duration.With("method", "AddOverlay"))(extractEndpoint)
+	overlayEndpoint = LoggingMiddleware(log.With(logger, "method", "AddOverlay"))(overlayEndpoint)
+	overlayEndpoint = InstrumentingMiddleware(duration.With("method", "AddOverlay"))(overlayEndpoint)
 
 	return Set{
 		ExtractEndpoint:    extractEndpoint,

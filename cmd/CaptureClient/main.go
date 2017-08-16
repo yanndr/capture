@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"log"
@@ -67,6 +68,60 @@ func main() {
 		return
 	}
 
+	r := bytes.NewReader(res.Data)
+
+	str, err := c.AddOverlay(context.Background())
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	for {
+		chunk := make([]byte, 64*1024)
+		n, err := r.Read(chunk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		if n < len(chunk) {
+			chunk = chunk[:n]
+		}
+		str.Send(&pb.OverlayImageRequest{Original: chunk, Position: &pb.Position{X: -10, Y: -10}})
+	}
+
+	fr, err := os.Open("../forumtube.png")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	defer fr.Close()
+
+	for {
+		chunk := make([]byte, 64*1024)
+		n, err := fr.Read(chunk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		if n < len(chunk) {
+			chunk = chunk[:n]
+		}
+		str.Send(&pb.OverlayImageRequest{Overlay: chunk, Position: &pb.Position{X: -10, Y: -10}})
+	}
+
+	resp, err := str.CloseAndRecv()
+	if err != nil {
+		log.Println("failed to add overlay")
+		log.Println(err)
+		return
+	}
+
 	f, err := os.Create("../result.png")
 	defer f.Close()
 
@@ -74,7 +129,7 @@ func main() {
 		log.Println(err)
 		return
 	}
-	_, err = f.Write(res.Data)
+	_, err = f.Write(resp.Data)
 	if err != nil {
 		log.Println(err)
 		return

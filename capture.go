@@ -34,14 +34,14 @@ type ExtractResponse struct {
 
 type Service interface {
 	Extract(context.Context, ExtractRequest) (ExtractResponse, error)
-	AddOverlay(request OverlayImageRequest) ([]byte, error)
+	AddOverlay(request OverlayImageRequest) (ExtractResponse, error)
 }
 
-func NewService(logger log.Logger, extracts metrics.Counter) Service {
+func NewService(logger log.Logger, extracts, overlays metrics.Counter) Service {
 	var svc Service
 	svc = VideoCaptureService{}
 	svc = LoggingMiddleware(logger)(svc)
-	svc = InstrumentingMiddleware(extracts)(svc)
+	svc = InstrumentingMiddleware(extracts, overlays)(svc)
 
 	return svc
 }
@@ -82,27 +82,31 @@ func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest
 	return ExtractResponse{Data: result}, nil
 }
 
-func (s VideoCaptureService) AddOverlay(request OverlayImageRequest) ([]byte, error) {
+func (s VideoCaptureService) AddOverlay(request OverlayImageRequest) (ExtractResponse, error) {
 
 	r := bytes.NewReader(request.Original)
 
 	img, _, err := image.Decode(r)
 	if err != nil {
-		return nil, err
+		return ExtractResponse{}, err
 	}
 
 	or := bytes.NewReader(request.Overlay)
 
 	logo, _, err := image.Decode(or)
 	if err != nil {
-		return nil, err
+		return ExtractResponse{}, err
 	}
 
 	m := image.NewRGBA(image.Rect(0, 0, img.Bounds().Max.X, img.Bounds().Max.Y))
 	draw.Draw(m, m.Bounds(), img, image.Point{0, 0}, draw.Src)
 	draw.Draw(m, m.Bounds(), logo, image.Point{int(request.X), int(request.Y)}, draw.Src)
 
-	return saveToPng(m)
+	result, err := saveToPng(m)
+	if err != nil {
+		return ExtractResponse{}, err
+	}
+	return ExtractResponse{Data: result}, nil
 
 }
 

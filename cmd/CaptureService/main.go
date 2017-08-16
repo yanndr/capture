@@ -32,7 +32,7 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
-	var extracts metrics.Counter
+	var extracts, overlays metrics.Counter
 	{
 		// Business-level metrics.
 		extracts = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
@@ -40,6 +40,13 @@ func main() {
 			Subsystem: "captureSvc",
 			Name:      "extracts_summed",
 			Help:      "Total count of extracts done via the Extract method.",
+		}, []string{})
+
+		overlays = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: "overlay",
+			Subsystem: "captureSvc",
+			Name:      "overlays_summed",
+			Help:      "Total count of overlays done via the Overlay method.",
 		}, []string{})
 	}
 
@@ -57,7 +64,7 @@ func main() {
 	http.DefaultServeMux.Handle("/metrics", promhttp.Handler())
 
 	var (
-		service    = capture.NewService(logger, extracts)
+		service    = capture.NewService(logger, extracts, overlays)
 		endpoints  = endpoint.New(service, logger, duration)
 		grpcServer = transport.NewGRPCServer(endpoints)
 	)
