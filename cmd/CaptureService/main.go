@@ -23,6 +23,8 @@ const (
 	debugAddr = ":8080"
 )
 
+var version, buid string
+
 func main() {
 
 	var logger log.Logger
