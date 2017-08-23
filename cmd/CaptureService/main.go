@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,11 +23,29 @@ import (
 const (
 	gRPCPort  = ":50051"
 	debugAddr = ":8081"
+	signature = `
+ 	 _[_]_  
+          (")  
+      '--( : )--'
+        (  :  )
+      ""'-...-'""
+`
 )
 
 var version, build string
 
 func main() {
+	certPtr := flag.String("cert", "cert.pem", "Path to the TLS certificate. default: ./cert.pem")
+	keyPtr := flag.String("key", "key.pem", "Path to the key certificate. default: ./key.pem")
+	versionPtr := flag.Bool("version", false, "Display the version")
+
+	flag.Parse()
+
+	if *versionPtr {
+		fmt.Println("imgresize version: ", version)
+		fmt.Println(signature)
+		return
+	}
 
 	var logger log.Logger
 	{
@@ -90,7 +109,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	creds, err := credentials.NewServerTLSFromFile("../../../cert.pem", "../../../key.pem")
+	creds, err := credentials.NewServerTLSFromFile(*certPtr, *keyPtr)
 	if err != nil {
 		logger.Log("transport", "gRPC", "during", "credential", "err", err)
 		os.Exit(1)
