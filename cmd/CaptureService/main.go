@@ -120,6 +120,7 @@ func main() {
 	pb.RegisterVideoCaptureServer(server, grpcServer)
 
 	fmt.Printf("Starting capture service v%v build: %v \n", version, build)
+	fmt.Println(signature)
 
 	if err := server.Serve(grpcListener); err != nil {
 		logger.Log("transport", "gRPC", "during", "serve", "err", err)
