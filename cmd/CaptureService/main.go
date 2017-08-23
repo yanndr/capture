@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -20,10 +21,10 @@ import (
 
 const (
 	gRPCPort  = ":50051"
-	debugAddr = ":8080"
+	debugAddr = ":8081"
 )
 
-var version, buid string
+var version, build string
 
 func main() {
 
@@ -98,6 +99,8 @@ func main() {
 
 	server := grpc.NewServer(opts...)
 	pb.RegisterVideoCaptureServer(server, grpcServer)
+
+	fmt.Printf("Starting capture service v%v build: %v \n", version, build)
 
 	if err := server.Serve(grpcListener); err != nil {
 		logger.Log("transport", "gRPC", "during", "serve", "err", err)
