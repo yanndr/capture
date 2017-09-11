@@ -109,14 +109,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	creds, err := credentials.NewServerTLSFromFile(*certPtr, *keyPtr)
-	if err != nil {
-		logger.Log("transport", "gRPC", "during", "credential", "err", err)
-		os.Exit(1)
-	}
-	opts := []grpc.ServerOption{grpc.Creds(creds)}
+	// creds, err := credentials.NewServerTLSFromFile(*certPtr, *keyPtr)
+	// if err != nil {
+	// 	logger.Log("transport", "gRPC", "during", "credential", "err", err)
+	// 	os.Exit(1)
+	// }
+	// opts := []grpc.ServerOption{grpc.Creds(creds)}
 
-	server := grpc.NewServer(opts...)
+	server := grpc.NewServer()
 	pb.RegisterVideoCaptureServer(server, grpcServer)
 
 	fmt.Printf("Starting capture service v%v build: %v \n", version, build)
