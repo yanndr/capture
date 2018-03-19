@@ -1,0 +1,13 @@
+[Unit]
+Description=Capture Service
+After=network.target
+
+[Service]
+User=yann
+WorkingDirectory=/home/yann/capture/
+Type=simple
+Restart=always
+ExecStart=/home/yann/capture/CaptureService
+
+[Install]
+WantedBy=multi-user.target

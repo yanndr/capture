@@ -17,7 +17,6 @@ import (
 	"github.com/yanndr/capture/pb"
 	"github.com/yanndr/capture/transport"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -35,8 +34,8 @@ const (
 var version, build string
 
 func main() {
-	certPtr := flag.String("cert", "cert.pem", "Path to the TLS certificate. default: ./cert.pem")
-	keyPtr := flag.String("key", "key.pem", "Path to the key certificate. default: ./key.pem")
+	// certPtr := flag.String("cert", "cert.pem", "Path to the TLS certificate. default: ./cert.pem")
+	// keyPtr := flag.String("key", "key.pem", "Path to the key certificate. default: ./key.pem")
 	versionPtr := flag.Bool("version", false, "Display the version")
 
 	flag.Parse()
