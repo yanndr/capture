@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	klog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
@@ -135,6 +137,15 @@ func main() {
 
 	fmt.Printf("Starting capture service v%v build: %v \n", version, build)
 	fmt.Println(signature)
+
+	go func() {
+		// graceful shutdown
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+		<-interrupt
+		log.Print("app is shutting down...")
+		server.Stop()
+	}()
 
 	if err := server.Serve(grpcListener); err != nil {
 		logger.Log("transport", "gRPC", "during", "serve", "err", err)

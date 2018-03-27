@@ -19,6 +19,23 @@ docker build -t capture ./cmd/CaptureService/
 ## Usage 
 
 Run the Service with Docker"
+
+Without a certificate:
 ```
-docker run --rm -it -p  50051:50051 -v /PATHTOCERT/cert -e CAPTURE_CERTPATH='/cert/cert.pem' -e CAPTURE_KEYPATH='cert/key.pem' capture
+docker run --rm -it -p  50051:50051 -p 8080:8081  capture
 ```
+With a certificate
+```
+docker run --rm -it -p  50051:50051 -p 8080:8081 -v /PATHTOCERT/cert -e CAPTURE_CERTPATH='/cert/cert.pem' -e CAPTURE_KEYPATH='cert/key.pem' capture
+```
+
+Then the Service will expose 2 functions by GRPC:
+rpc ExtractImage (stream VideoCaptureRequest) returns (VideoCaptureReply) {}
+rpc AddOverlay (stream OverlayImageRequest) returns (VideoCaptureReply) {}
+
+metrics will be available at http://localhost:8080/metrics
+
+There is a client example in cmd/CaptureClient:
+
+```
+go run cmd/CaptureClient/main.go pathtoVideofile 
