@@ -3,10 +3,14 @@ package capture
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"image"
 	"image/draw"
 	"image/png"
 	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
@@ -54,13 +58,21 @@ func New() VideoCaptureService {
 	return VideoCaptureService{}
 }
 
+func tempFileName(suffix string) string {
+	randBytes := make([]byte, 16)
+	rand.Read(randBytes)
+	return filepath.Join(os.TempDir(), hex.EncodeToString(randBytes)+suffix)
+}
+
 //Extract extract an image from a video.
 func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 
-	name, err := saveFile(request.Name, request.Video)
+	name, err := saveFile(tempFileName(path.Ext(request.Name)), request.Video)
 	if err != nil {
 		return ExtractResponse{}, err
 	}
+
+	defer os.Remove(name)
 
 	g, err := screengen.NewGenerator(name)
 	if err != nil {
@@ -76,8 +88,6 @@ func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest
 	if err != nil {
 		return ExtractResponse{}, err
 	}
-
-	os.Remove(name)
 
 	return ExtractResponse{Data: result}, nil
 }

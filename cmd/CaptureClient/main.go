@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -20,6 +22,10 @@ const (
 
 func main() {
 	args := os.Args[1:]
+
+	outputPtr := flag.String("o", "result.png", "output of the result")
+
+	flag.Parse()
 
 	if len(args) == 0 {
 		log.Fatal("no input file")
@@ -90,23 +96,46 @@ func main() {
 		return
 	}
 
-	r := bytes.NewReader(res.Data)
+	var data []byte
+	if len(args) > 1 {
+		r := bytes.NewReader(res.Data)
+		if data, err = addOverlay(c, r, args[1]); err != nil {
+			log.Fatal(err)
+		}
 
+	} else {
+		data = res.Data
+	}
+
+	f, err := os.Create(*outputPtr)
+	defer f.Close()
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, err = f.Write(data)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+}
+
+func addOverlay(c pb.VideoCaptureClient, image io.Reader, overlay string) ([]byte, error) {
 	str, err := c.AddOverlay(context.Background())
 	if err != nil {
-		log.Fatal(err)
-		return
+		return nil, err
 	}
 
 	for {
 		chunk := make([]byte, 64*1024)
-		n, err := r.Read(chunk)
+		n, err := image.Read(chunk)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.Fatal(err)
-			return
+			return nil, err
 		}
 		if n < len(chunk) {
 			chunk = chunk[:n]
@@ -114,48 +143,32 @@ func main() {
 		str.Send(&pb.OverlayImageRequest{Original: chunk, Position: &pb.Position{X: -10, Y: -10}})
 	}
 
-	if len(args) > 1 {
-		fr, err := os.Open(args[1])
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		defer fr.Close()
-
-		for {
-			chunk := make([]byte, 64*1024)
-			n, err := fr.Read(chunk)
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Fatal(err)
-				return
-			}
-			if n < len(chunk) {
-				chunk = chunk[:n]
-			}
-			str.Send(&pb.OverlayImageRequest{Overlay: chunk, Position: &pb.Position{X: -10, Y: -10}})
-		}
-
-		resp, err := str.CloseAndRecv()
-		if err != nil {
-			log.Println("failed to add overlay")
-			log.Println(err)
-			return
-		}
-
-		f, err := os.Create("../result.png")
-		defer f.Close()
-
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		_, err = f.Write(resp.Data)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+	fr, err := os.Open(overlay)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
 	}
+	defer fr.Close()
+
+	for {
+		chunk := make([]byte, 64*1024)
+		n, err := fr.Read(chunk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if n < len(chunk) {
+			chunk = chunk[:n]
+		}
+		str.Send(&pb.OverlayImageRequest{Overlay: chunk, Position: &pb.Position{X: -10, Y: -10}})
+	}
+
+	resp, err := str.CloseAndRecv()
+	if err != nil {
+		return nil, fmt.Errorf("error on close and received: %v", err)
+	}
+
+	return resp.Data, nil
 }
