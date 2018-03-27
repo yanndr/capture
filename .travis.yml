@@ -1,0 +1,8 @@
+language: go
+
+before_install:
+  -sudo apt-get update && sudo apt-get install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+go:
+  - master
+script:  
+  - go build cmd\CaptureService\main.go
