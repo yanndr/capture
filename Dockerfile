@@ -1,10 +1,14 @@
-FROM golang:1.8
+FROM golang:1.10 as builder
 
-WORKDIR /go/src/app
-COPY . .
+
 RUN apt-get update
 RUN apt-get install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
-RUN go-wrapper download   # "go get -d -v ./..."
-RUN go-wrapper install    # "go install -v ./..."
+RUN mkdir /go/src/app
+COPY ./cmd/CaptureService /go/src/app
+RUN go get ./...
+RUN go install app
 
-CMD ["go-wrapper", "run"] # ["app"]
+FROM debian:jessie-slim
+RUN apt-get update && apt-get install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+COPY --from=builder /go/bin/app /bin/app
+ENTRYPOINT ["/bin/app"]
