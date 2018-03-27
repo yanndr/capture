@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/kelseyhightower/envconfig"
 	"github.com/yanndr/capture/pb"
 
 	"google.golang.org/grpc"
@@ -18,9 +19,31 @@ const (
 )
 
 func main() {
+	args := os.Args[1:]
+
+	if len(args) == 0 {
+		log.Fatal("no input file")
+		return
+	}
+
+	var config struct {
+		CertPath string
+	}
+
+	if err := envconfig.Process("CAPTURE", &config); err != nil {
+		log.Fatalf("error getting the environment variables: %v", err)
+		os.Exit(1)
+	}
+
 	var c pb.VideoCaptureClient
-	creds, err := credentials.NewClientTLSFromFile("../cert.pem", "")
+	creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
+	if err != nil {
+		log.Printf("error with certificate: %v", err)
+		return
+	}
+
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
+
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		log.Printf("did not connect: %v", err)
@@ -30,11 +53,10 @@ func main() {
 	log.Println("Connected")
 	defer conn.Close()
 	c = pb.NewVideoCaptureClient(conn)
-	log.Println(c)
 
-	fi, err := os.Open("../IMG_3116.mp4")
+	fi, err := os.Open(args[0])
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Could not open file: ", err)
 		return
 	}
 	defer fi.Close()
@@ -92,46 +114,48 @@ func main() {
 		str.Send(&pb.OverlayImageRequest{Original: chunk, Position: &pb.Position{X: -10, Y: -10}})
 	}
 
-	fr, err := os.Open("../forumtube.png")
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	defer fr.Close()
-
-	for {
-		chunk := make([]byte, 64*1024)
-		n, err := fr.Read(chunk)
-		if err == io.EOF {
-			break
-		}
+	if len(args) > 1 {
+		fr, err := os.Open(args[1])
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		if n < len(chunk) {
-			chunk = chunk[:n]
+		defer fr.Close()
+
+		for {
+			chunk := make([]byte, 64*1024)
+			n, err := fr.Read(chunk)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			if n < len(chunk) {
+				chunk = chunk[:n]
+			}
+			str.Send(&pb.OverlayImageRequest{Overlay: chunk, Position: &pb.Position{X: -10, Y: -10}})
 		}
-		str.Send(&pb.OverlayImageRequest{Overlay: chunk, Position: &pb.Position{X: -10, Y: -10}})
-	}
 
-	resp, err := str.CloseAndRecv()
-	if err != nil {
-		log.Println("failed to add overlay")
-		log.Println(err)
-		return
-	}
+		resp, err := str.CloseAndRecv()
+		if err != nil {
+			log.Println("failed to add overlay")
+			log.Println(err)
+			return
+		}
 
-	f, err := os.Create("../result.png")
-	defer f.Close()
+		f, err := os.Create("../result.png")
+		defer f.Close()
 
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	_, err = f.Write(resp.Data)
-	if err != nil {
-		log.Println(err)
-		return
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		_, err = f.Write(resp.Data)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}
 }

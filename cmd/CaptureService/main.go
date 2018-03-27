@@ -39,7 +39,6 @@ var version, build string
 func main() {
 
 	var config struct {
-		Port     string `default:"8080"`
 		CertPath string
 		KeyPath  string
 	}
