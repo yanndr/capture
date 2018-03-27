@@ -13,8 +13,12 @@ go get github.com/yanndr/capture
 
 docker build -t capture ./cmd/CaptureService/
 
-
 ```
 
 
 ## Usage 
+
+Run the Service with Docker"
+```
+docker run --rm -it -p  50051:50051 -v /PATHTOCERT/cert -e CAPTURE_CERTPATH='/cert/cert.pem' -e CAPTURE_KEYPATH='cert/key.pem' capture
+```

@@ -1,0 +1,15 @@
+FROM golang:1.10 as builder
+
+
+RUN apt-get update
+RUN apt-get install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+RUN mkdir /go/src/CaptureService
+COPY . /go/src/CaptureService
+WORKDIR /go/src/CaptureService
+RUN go get ./...
+RUN make
+
+FROM debian:stretch-slim
+RUN apt-get update && apt-get install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+COPY --from=builder /go/bin/CaptureService /bin/CaptureService
+ENTRYPOINT ["/bin/CaptureService"]
