@@ -3,13 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
 
-	"github.com/go-kit/kit/log"
+	klog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
+	"github.com/kelseyhightower/envconfig"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yanndr/capture"
@@ -17,6 +19,7 @@ import (
 	"github.com/yanndr/capture/pb"
 	"github.com/yanndr/capture/transport"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -34,8 +37,18 @@ const (
 var version, build string
 
 func main() {
-	// certPtr := flag.String("cert", "cert.pem", "Path to the TLS certificate. default: ./cert.pem")
-	// keyPtr := flag.String("key", "key.pem", "Path to the key certificate. default: ./key.pem")
+
+	var config struct {
+		Port     string `default:"8080"`
+		CertPath string
+		KeyPath  string
+	}
+
+	if err := envconfig.Process("CAPTURE", &config); err != nil {
+		log.Fatalf("error getting the environment variables: %v", err)
+		os.Exit(1)
+	}
+
 	versionPtr := flag.Bool("version", false, "Display the version")
 
 	flag.Parse()
@@ -46,11 +59,11 @@ func main() {
 		return
 	}
 
-	var logger log.Logger
+	var logger klog.Logger
 	{
-		logger = log.NewLogfmtLogger(os.Stderr)
-		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-		logger = log.With(logger, "caller", log.DefaultCaller)
+		logger = klog.NewLogfmtLogger(os.Stderr)
+		logger = klog.With(logger, "ts", klog.DefaultTimestampUTC)
+		logger = klog.With(logger, "caller", klog.DefaultCaller)
 	}
 
 	var extracts, overlays metrics.Counter
@@ -108,14 +121,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// creds, err := credentials.NewServerTLSFromFile(*certPtr, *keyPtr)
-	// if err != nil {
-	// 	logger.Log("transport", "gRPC", "during", "credential", "err", err)
-	// 	os.Exit(1)
-	// }
-	// opts := []grpc.ServerOption{grpc.Creds(creds)}
+	opts := []grpc.ServerOption{}
+	if config.CertPath != "" {
+		creds, err := credentials.NewServerTLSFromFile(config.CertPath, config.KeyPath)
+		if err != nil {
+			logger.Log("transport", "gRPC", "during", "credential", "err", err)
+			os.Exit(1)
+		}
+		opts = append(opts, grpc.Creds(creds))
+	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(opts...)
 	pb.RegisterVideoCaptureServer(server, grpcServer)
 
 	fmt.Printf("Starting capture service v%v build: %v \n", version, build)
