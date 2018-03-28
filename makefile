@@ -1,3 +1,6 @@
+default:
+	go build cmd/CaptureService/main.go
+	
 protos:
 	protoc -I pb/ pb/capture.proto --go_out=plugins=grpc:pb
 
