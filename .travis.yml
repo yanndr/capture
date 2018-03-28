@@ -5,4 +5,4 @@ before_install:
 go:
   - master
 script:  
-  - go get -t ./... && make
+  - go get ./... && make
