@@ -42,13 +42,20 @@ func main() {
 	}
 
 	var c pb.VideoCaptureClient
-	creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
-	if err != nil {
-		log.Printf("error with certificate: %v", err)
-		return
-	}
 
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
+	var opts []grpc.DialOption
+
+	if config.CertPath != "" {
+		creds, err := credentials.NewClientTLSFromFile(config.CertPath, "")
+		if err != nil {
+			log.Printf("error with certificate: %v", err)
+			return
+		}
+		opts = []grpc.DialOption{grpc.WithTransportCredentials(creds)}
+	} else {
+		opts = []grpc.DialOption{grpc.WithInsecure()}
+
+	}
 
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
