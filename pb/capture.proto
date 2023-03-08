@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pb;
 
+option go_package = "./";
+
 service VideoCapture {
   rpc ExtractImage (stream VideoCaptureRequest) returns (VideoCaptureReply) {}
   rpc AddOverlay (stream OverlayImageRequest) returns (VideoCaptureReply) {}

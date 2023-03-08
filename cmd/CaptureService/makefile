@@ -1,7 +1,6 @@
 VERSION=`cat version`
-BUILD=`git rev-parse HEAD`
 
-LDFLAGS=-ldflags "-X main.version=${VERSION} -X main.build=${BUILD}"
+LDFLAGS=-ldflags "-X main.version=${VERSION}"
 
 build:
 	go install ${LDFLAGS} 
