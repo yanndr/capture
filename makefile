@@ -6,7 +6,7 @@ default:
 	go build cmd/CaptureService/main.go
 
 build:
-	go build ${LDFLAGS} -o CaptureService
+	go build ${LDFLAGS} -o CaptureService cmd/CaptureService/main.go
 	
 protos:
 	protoc -I pb/ pb/capture.proto --go-grpc_out=pb

@@ -10,4 +10,4 @@ RUN make build
 FROM debian:stretch-slim
 RUN apt-get update && apt-get install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
 COPY --from=builder /go/src/CaptureService /bin/CaptureService
-ENTRYPOINT ["/bin/CaptureService"]
+#ENTRYPOINT ["/bin/CaptureService"]
