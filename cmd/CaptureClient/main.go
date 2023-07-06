@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
 	"os"
@@ -38,7 +39,6 @@ func main() {
 
 	if err := envconfig.Process("CAPTURE", &config); err != nil {
 		log.Fatalf("error getting the environment variables: %v", err)
-		os.Exit(1)
 	}
 
 	var c pb.VideoCaptureClient
@@ -53,7 +53,7 @@ func main() {
 		}
 		opts = []grpc.DialOption{grpc.WithTransportCredentials(creds)}
 	} else {
-		opts = []grpc.DialOption{grpc.WithInsecure()}
+		opts = []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	}
 

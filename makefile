@@ -1,5 +1,4 @@
-VERSION=`cat cmd/CaptureService/version`
-
+VERSION=$(shell cat cmd/CaptureService/version)
 LDFLAGS=-ldflags "-X main.version=${VERSION}"
 
 default:
@@ -9,8 +8,8 @@ build:
 	go build ${LDFLAGS} -o CaptureService cmd/CaptureService/main.go
 	
 protos:
-	protoc -I pb/ pb/capture.proto --go-grpc_out=pb
+	protoc  --go_out=./ --go-grpc_out=./ pb/capture.proto
 
 docker-service:
-	docker build -t ydruffin/capture:latest ./cmd/CaptureService/
-	docker build -t ydruffin/capture:${VERSION} ./cmd/CaptureService/
+	docker build -t ydruffin/capture:latest .
+	docker build -t ydruffin/capture:${VERSION} .

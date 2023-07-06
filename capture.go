@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
-	"github.com/opennota/screengen"
+	"gitlab.com/opennota/screengen"
 	"golang.org/x/net/context"
 )
 
@@ -50,7 +50,7 @@ func NewService(logger log.Logger, extracts, overlays metrics.Counter) Service {
 	return svc
 }
 
-//VideoCaptureService expose funcions for video.
+// VideoCaptureService expose functions for video.
 type VideoCaptureService struct {
 }
 
@@ -64,7 +64,7 @@ func tempFileName(suffix string) string {
 	return filepath.Join(os.TempDir(), hex.EncodeToString(randBytes)+suffix)
 }
 
-//Extract extract an image from a video.
+// Extract an image from a video.
 func (s VideoCaptureService) Extract(ctx context.Context, request ExtractRequest) (ExtractResponse, error) {
 
 	name, err := saveFile(tempFileName(path.Ext(request.Name)), request.Video)

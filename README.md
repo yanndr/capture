@@ -18,7 +18,7 @@ docker build -t capture ./cmd/CaptureService/
 
 ## Usage 
 
-Run the Service with Docker"
+Run the Service with Docker
 
 Without a certificate:
 ```

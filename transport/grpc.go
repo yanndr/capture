@@ -2,17 +2,17 @@ package transport
 
 import (
 	"context"
-	"io"
-
 	kitendpoint "github.com/go-kit/kit/endpoint"
 	"github.com/yanndr/capture"
 	"github.com/yanndr/capture/endpoint"
 	"github.com/yanndr/capture/pb"
+	"io"
 )
 
 type grpcServer struct {
 	extract kitendpoint.Endpoint
 	overlay kitendpoint.Endpoint
+	pb.UnimplementedVideoCaptureServer
 }
 
 func NewGRPCServer(endpoints endpoint.Set) pb.VideoCaptureServer {
